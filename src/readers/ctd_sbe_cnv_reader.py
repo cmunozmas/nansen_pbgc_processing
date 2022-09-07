@@ -12,18 +12,17 @@ import pandas as pd
 from seabird.cnv import fCNV
 
 
-
-
 class CtdSbeCnv:
     def __init__(self, config): 
         #Sself.main_path      = config['Path']['MainPath']
-        
-        
-
+       
+        self.cnv_varnames_map = {}
         self.cnv_varnames_map_dfn_v0 = {'PRES': 'PRES',
                                  'PSAL00': 'PSAL',
                                  'TEMP00': 'temperature', 
+                                 'TEMP01': 't168C', 
                                  'CNDC00': 'CNDC',
+                                 'CNDC01': 'CNDC2',
                                  'DOXV': 'oxygenvoltage',
                                  'DOX1': 'oxygen_ml_L',
                                  'FCHLA': 'flECO-AFL',
@@ -75,14 +74,23 @@ class CtdSbeCnv:
        
     
         self.cnv_var_attrs_map = {'TEMP00_SENSOR_SN': 'temp00_sensor_sn',
+                                  'TEMP01_SENSOR_SN': 'temp01_sensor_sn',
                                   'CNDC00_SENSOR_SN': 'cndc00_sensor_sn',
+                                  'CNDC01_SENSOR_SN': 'cndc01_sensor_sn',
                                   'PRES_SENSOR_SN': 'pres_sensor_sn',
                                   'DOX1_SENSOR_SN': 'dox1_sensor_sn',
                                   'FCHLA_SENSOR_SN': 'fchla_sensor_sn',
                                   }
                 
 
-                
+    def set_cnv_varnames_map(self, config):
+        if config['Settings']['CtdSbeCnvFormat'] == '0':
+            self.cnv_varnames_map = self.cnv_varnames_map_dfn_v0
+        elif config['Settings']['CtdSbeCnvFormat'] == '1':
+            self.cnv_varnames_map = self.cnv_varnames_map_dfn_v1
+                   
+            
+            
     def get_input_files_list(self, files_path):
         files_list = glob.glob(files_path + '*.cnv')
         #files_list = glob.glob(files_path + 'd*.cnv')
@@ -93,10 +101,10 @@ class CtdSbeCnv:
     def load_data(self, file_path, config):
         '''Loads cnv files using seabird library.'''
         #files_list = glob.glob(files_path + 'u*.cnv')
-        if config['Settings']['CtdSbeCnvFormat'] == '0':
-            cnv_varnames_map = self.cnv_varnames_map_dfn_v0
-        elif config['Settings']['CtdSbeCnvFormat'] == '1':
-            cnv_varnames_map = self.cnv_varnames_map_dfn_v1
+        # if config['Settings']['CtdSbeCnvFormat'] == '0':
+        #     cnv_varnames_map = self.cnv_varnames_map_dfn_v0
+        # elif config['Settings']['CtdSbeCnvFormat'] == '1':
+        #     cnv_varnames_map = self.cnv_varnames_map_dfn_v1
             
         profile = fCNV(file_path)
         attrs = profile.attrs
@@ -107,18 +115,18 @@ class CtdSbeCnv:
         var_dict = dict((key, []) for key in var_names)      
               
         if 'flECO-AFL' in var_dict:
-            var_dict[cnv_varnames_map['FCHLA']] = var_dict.pop('flECO-AFL')
+            var_dict[self.cnv_varnames_map['FCHLA']] = var_dict.pop('flECO-AFL')
         elif 'flC' in var_dict:
-            var_dict[cnv_varnames_map['FCHLA']] = var_dict.pop('flC')  
+            var_dict[self.cnv_varnames_map['FCHLA']] = var_dict.pop('flC')  
         elif 'fluorescence' in var_dict:
-            var_dict[cnv_varnames_map['FCHLA']] = var_dict.pop('fluorescence')             
+            var_dict[self.cnv_varnames_map['FCHLA']] = var_dict.pop('fluorescence')             
         for var_name in var_names:
             var = profile[var_name]
             for value in var:
                 if not value:
                     value = None
                 if (var_name == 'flECO-AFL') or (var_name == 'flC') or (var_name == 'fluorescence'):
-                    var_dict[cnv_varnames_map['FCHLA']].append(value)
+                    var_dict[self.cnv_varnames_map['FCHLA']].append(value)
                 else:
                     var_dict[var_name].append(value)
         for key in var_dict:
@@ -191,11 +199,21 @@ class CtdSbeCnv:
                 line = file.readline()
                 if '<SerialNumber>' in line:
                     dataset_attrs['temp00_sensor_sn'] = line[22:-16].replace(" ", "")  
+            elif '<!-- Frequency 3, Temperature, 2 -->' in line:
+                line = file.readline()
+                line = file.readline()
+                if '<SerialNumber>' in line:
+                    dataset_attrs['temp01_sensor_sn'] = line[22:-16].replace(" ", "")                     
             elif '<!-- Frequency 1, Conductivity -->' in line:
                 line = file.readline()
                 line = file.readline()
                 if '<SerialNumber>' in line:
                     dataset_attrs['cndc00_sensor_sn'] = line[22:-16].replace(" ", "")  
+            elif '<!-- Frequency 4, Conductivity, 2 -->' in line:
+                line = file.readline()
+                line = file.readline()
+                if '<SerialNumber>' in line:
+                    dataset_attrs['cndc01_sensor_sn'] = line[22:-16].replace(" ", "")                     
             elif '<!-- Frequency 2, Pressure, Digiquartz with TC -->' in line:
                 line = file.readline()
                 line = file.readline()

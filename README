@@ -9,3 +9,20 @@ e.g: /test_data/ctd/2022401/rawInput
 Create folder structure for output files:
 
 eg: /test_data/ctd/procOutput/research_vessel/ctd
+
+
+In input rawInput folder you will place the cnv files
+
+Open config.ini and edit paths
+
+[Settings]
+MainPath: /home/a33272/Documents/python/
+#ProcessingLogPath: /home/a33272/Documents/python/nansen_importers/log/processing.log
+DataInPath: /test_data/ctd/
+DataOutPath: /test_data/ctd/procOutput/research_vessel/ctd/
+
+CruiseId: 2022402
+
+
+copy a survey config file and rename it with your survey
+

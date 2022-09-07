@@ -54,6 +54,7 @@ nc_load = load_netcdf.LoadNetCDF
 
  
 # Load cnv data
+reader.set_cnv_varnames_map(config)
 files_list = reader.get_input_files_list(data_in_path)
 dataset = {}
 for file_path in files_list:
