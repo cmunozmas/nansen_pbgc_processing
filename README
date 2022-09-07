@@ -1,1 +1,11 @@
-# Nansen Physics-Biogeochemistry processing toolbox
+## Nansen Physics-Biogeochemistry processing toolbox
+
+Create folder structure for input files:
+
+path_to_folder/ctd/<survey_id>/rawInput
+e.g: /test_data/ctd/2022401/rawInput
+
+
+Create folder structure for output files:
+
+eg: /test_data/ctd/procOutput/research_vessel/ctd
