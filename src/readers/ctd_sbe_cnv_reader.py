@@ -50,8 +50,11 @@ class CtdSbeCnv:
 
         self.cnv_varnames_map_dfn_v1 = {'PRES': 'PRES',
                                  'PSAL00': 'PSAL',
+                                 'PSAL01': 'PSAL2',
                                  'TEMP00': 'TEMP', 
+                                 'TEMP01': 'TEMP2',
                                  'CNDC00': 'CNDC',
+                                 'CNDC01': 'CNDC2',
                                  'DOXV': 'oxygenvoltage',
                                  'DOX1': 'oxygen_ml_L',
                                  #'FCHLA': 'Fluo',
