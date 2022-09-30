@@ -87,9 +87,9 @@ class CtdSbeCnv:
                 
 
     def set_cnv_varnames_map(self, config):
-        if config['Settings']['CtdSbeCnvFormat'] == '0':
+        if config['Settings']['CtdFormat'] == '0':
             self.cnv_varnames_map = self.cnv_varnames_map_dfn_v0
-        elif config['Settings']['CtdSbeCnvFormat'] == '1':
+        elif config['Settings']['CtdFormat'] == '1':
             self.cnv_varnames_map = self.cnv_varnames_map_dfn_v1
                    
             

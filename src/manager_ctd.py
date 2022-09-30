@@ -15,6 +15,7 @@ import argparse
 import configparser
 import netCDF4 as nc
 import readers.ctd_sbe_cnv_reader as ctd_sbe_cnv_reader
+import readers.ctd_sbe_quickcast_odv_reader as ctd_quickcast_odv_reader
 import exporters.ctd_level0_exporter as ctd_level0_exporter
 import exporters.ctd_level1C_exporter as ctd_level1C_exporter
 import rtqc.rtqc_tests as rtqc_tests
@@ -49,17 +50,27 @@ for cruise_id in cruise_id_list:
 
     # Initialize related processing classes
     reader = ctd_sbe_cnv_reader.CtdSbeCnv(config)  
+    reader_odv = ctd_quickcast_odv_reader.CtdQuickcastOdv(config)
     exporter = ctd_level0_exporter.CtdLevel0(config_survey)
     exporter1 = ctd_level1C_exporter.CtdLevel1C(config_survey)
     rtqc_manager = manager_rtqc_ctd.RtqcManager(config_survey)
     nc_load = load_netcdf.LoadNetCDF
     
-    # Load cnv data
-    reader.set_cnv_varnames_map(config)
-    files_list = reader.get_input_files_list(data_in_path)
+    # Load rawInput data
+    if (config['Settings']['CtdFormat'] == 0) or (config['Settings']['CtdFormat'] == 1):
+        reader.set_cnv_varnames_map(config)
+        files_list = reader.get_input_files_list(data_in_path)
+    elif config['Settings']['CtdFormat'] == 2:
+        reader_odv.set_cnv_varnames_map(config)
+        files_list = reader_odv.get_input_files_list(data_in_path)
+            
     dataset = {}
     for file_path in files_list:
-        data_df, attrs = reader.load_data(file_path, config)
+        if (config['Settings']['CtdFormat'] == 0) or (config['Settings']['CtdFormat'] == 1):
+            data_df, attrs = reader.load_data(file_path, config)
+        elif config['Settings']['CtdFormat'] == 2:
+            data_df, attrs = reader_odv.load_data(file_path, config)
+            
         station = 'sta' + file_path[-8:-4]
         #station = file_path.rsplit('/', 1)[1][1:-4]
         dataset[station] = {}
