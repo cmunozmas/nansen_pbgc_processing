@@ -15,7 +15,7 @@ import argparse
 import configparser
 import netCDF4 as nc
 import readers.ctd_sbe_cnv_reader as ctd_sbe_cnv_reader
-import readers.ctd_sbe_quickcast_odv_reader as ctd_quickcast_odv_reader
+import readers.ctd_quickcast_odv_reader as ctd_quickcast_odv_reader
 import exporters.ctd_level0_exporter as ctd_level0_exporter
 import exporters.ctd_level1C_exporter as ctd_level1C_exporter
 import rtqc.rtqc_tests as rtqc_tests
@@ -57,10 +57,11 @@ for cruise_id in cruise_id_list:
     nc_load = load_netcdf.LoadNetCDF
     
     # Load rawInput data
-    if (config['Settings']['CtdFormat'] == 0) or (config['Settings']['CtdFormat'] == 1):
+    ctd_format = int(config['Settings']['CtdFormat'])
+    if (ctd_format == 0) or (ctd_format == 1):
         reader.set_cnv_varnames_map(config)
         files_list = reader.get_input_files_list(data_in_path)
-    elif config['Settings']['CtdFormat'] == 2:
+    elif ctd_format == 2:
         reader_odv.set_cnv_varnames_map(config)
         files_list = reader_odv.get_input_files_list(data_in_path)
             
