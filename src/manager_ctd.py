@@ -15,7 +15,8 @@ import argparse
 import configparser
 import netCDF4 as nc
 import readers.ctd_sbe_cnv_reader as ctd_sbe_cnv_reader
-import readers.ctd_quickcast_odv_reader as ctd_quickcast_odv_reader
+import readers.ctd_sbe_quickcast_odv_reader as ctd_quickcast_odv_reader
+import readers.readers_base as readers_base
 import exporters.ctd_level0_exporter as ctd_level0_exporter
 import exporters.ctd_level1C_exporter as ctd_level1C_exporter
 import rtqc.rtqc_tests as rtqc_tests
@@ -24,10 +25,10 @@ import utils.load_netcdf as load_netcdf
 import utils.plot_utils as plotutils
 
 import sys
-sys.path.append('/home/a33272/Documents/python/')
-import pbgc_field_calib.src.manager_salinity as salinity_field_calibration
-import pbgc_field_calib.src.manager_oxygen as oxygen_field_calibration
-import pbgc_field_calib.src.manager_chla as chla_field_calibration
+sys.path.append('/home/a33272/Documents/python/nansen_pbgc_processing/')
+# import pbgc_field_calib.src.manager_salinity as salinity_field_calibration
+# import pbgc_field_calib.src.manager_oxygen as oxygen_field_calibration
+# import pbgc_field_calib.src.manager_chla as chla_field_calibration
 
 
 package_path = '/home/a33272/Documents/python/'
@@ -42,15 +43,16 @@ for cruise_id in cruise_id_list:
     data_in_path = config['Settings']['DataInPath'] + cruise_id + '/rawInput/'
     data_out_path =  config['Settings']['DataOutPath']
     config_survey = configparser.ConfigParser()
-    config_survey.read(config_path + 'config_' + cruise_id + '.ini')
+    config_survey.read(config_path + 'config_' + cruise_id + '.ini', encoding= 'utf-8')
     config_field_calib = configparser.ConfigParser()
-    config_field_calib.read(config_pbgc_path + 'config_' + cruise_id + '.ini')
+    config_field_calib.read(config_pbgc_path + 'config_' + cruise_id + '.ini', encoding= 'utf-8')
     # config_field_calib_json = configparser.ConfigParser()
-    # config_field_calib.read(config_pbgc_path + 'config_' + cruise_id + '.json')  
+    # config_field_calib.read(config_pbgc_path + 'config_' + cruise_id + '.json')    
 
     # Initialize related processing classes
     reader = ctd_sbe_cnv_reader.CtdSbeCnv(config)  
     reader_odv = ctd_quickcast_odv_reader.CtdQuickcastOdv(config)
+    base_reader = readers_base.ReadersBase(config)
     exporter = ctd_level0_exporter.CtdLevel0(config_survey)
     exporter1 = ctd_level1C_exporter.CtdLevel1C(config_survey)
     rtqc_manager = manager_rtqc_ctd.RtqcManager(config_survey)
@@ -59,18 +61,19 @@ for cruise_id in cruise_id_list:
     # Load rawInput data
     ctd_format = int(config['Settings']['CtdFormat'])
     if (ctd_format == 0) or (ctd_format == 1):
-        reader.set_cnv_varnames_map(config)
         files_list = reader.get_input_files_list(data_in_path)
     elif ctd_format == 2:
-        reader_odv.set_cnv_varnames_map(config)
-        files_list = reader_odv.get_input_files_list(data_in_path)
-            
+        files_list = reader_odv.get_input_files_list(config, data_in_path)
+        #reader_odv.split_survey_odv_into_stations(files_list[0], data_in_path, config)
+        files_list = reader_odv.get_input_station_files_list(data_in_path)
+        
     dataset = {}
     for file_path in files_list:
-        if (config['Settings']['CtdFormat'] == 0) or (config['Settings']['CtdFormat'] == 1):
+        if (ctd_format == 0) or (ctd_format == 1):
             data_df, attrs = reader.load_data(file_path, config)
-        elif config['Settings']['CtdFormat'] == 2:
+        elif ctd_format == 2:           
             data_df, attrs = reader_odv.load_data(file_path, config)
+            
             
         station = 'sta' + file_path[-8:-4]
         #station = file_path.rsplit('/', 1)[1][1:-4]
@@ -78,8 +81,11 @@ for cruise_id in cruise_id_list:
         dataset[station]['data'] = data_df
         dataset[station]['attrs'] = attrs
         dataset[station]['attrs']['station'] = station 
-        dataset[station]['attrs'] = reader.load_header_attrs(file_path, dataset[station]['attrs'])
-    
+        if (ctd_format == 0) or (ctd_format == 1):
+            dataset[station]['attrs'] = reader.load_header_attrs(file_path, dataset[station]['attrs'])
+        elif ctd_format == 2:
+            dataset[station]['attrs'] = reader_odv.load_header_attrs(data_df, dataset[station]['attrs']) 
+
     #Export L0 NetCDF
     exporter.create_data_out_directories(data_out_path)
     data_out_path_year = data_out_path + config_survey['GlobalAttrs']['CruiseId'][0:4]

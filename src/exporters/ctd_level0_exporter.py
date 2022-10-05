@@ -14,9 +14,9 @@ from netCDF4 import Dataset
 import datetime
 import time
 import os
+
+#from readers.readers_base import ReadersBase as ReadersBase
 from readers.ctd_sbe_cnv_reader import CtdSbeCnv as CtdSbeCnv
-
-
 
 class CtdLevel0(CtdSbeCnv):
     def __init__(self, *args):
@@ -75,11 +75,8 @@ class CtdLevel0(CtdSbeCnv):
       return  
   
     def create_nc_file(self, file_path, config, config_survey, data):
-        self.set_cnv_varnames_map(config)
-        # if config['Settings']['CtdSbeCnvFormat'] == '0':
-        #     self.cnv_varnames_map = self.self.cnv_varnames_map_dfn_v0
-        # elif config['Settings']['CtdSbeCnvFormat'] == '1':
-        #     self.cnv_varnames_map = self.self.cnv_varnames_map_dfn_v1
+
+        self.varnames_map = self.set_varnames_map(config)
         
         attrs_date = data['attrs']['datetime'].strftime('%Y-%m-%d')
         nc_file_name = 'EAF-NANSEN_C' + config_survey['GlobalAttrs']['CruiseId'] + '_CTD_L0_' + attrs_date + '_' + data['attrs']['station'] + '.nc'
@@ -139,7 +136,7 @@ class CtdLevel0(CtdSbeCnv):
         rootgrp.cdm_profile_variables = 'IMR_LOCAL_OBJECT_ID, time, latitude, longitude'
         # Create Dimensions
         profile = rootgrp.createDimension("profile", 1)
-        z = rootgrp.createDimension("z", len(data['data'][self.cnv_varnames_map['TEMP00']]))
+        z = rootgrp.createDimension("z", len(data['data'][self.varnames_map['TEMP00']]))
 
         times = rootgrp.createVariable(self.nc_varnames_map['TIME'],"f8",("profile",))
         times.units                 = 'days since -4713-01-01T00:00:00Z'
@@ -254,14 +251,14 @@ class CtdLevel0(CtdSbeCnv):
         sdn_edmo.ioos_category      = 'Identifier'
         sdn_edmo[:]                 = nc.stringtochar(np.array([str(config_survey['VarAttrs']['SdnEdmoCode'])], 'S'))
         
-        NUMCHARS                    = len(data['attrs'][self.cnv_varnames_map['STATION_NAME']])
+        NUMCHARS                    = len(data['attrs'][self.varnames_map['STATION_NAME']])
         nchar_station               = rootgrp.createDimension('nchar_station', NUMCHARS)
         station                     = rootgrp.createVariable(self.nc_varnames_map['STATION_NAME'],'S1',("profile","nchar_station",))
         station.long_name           = 'IMR Station Identifier'
         station._Fillvalue          = ''
         station.ancillary_variable  = ''
         station.ioos_category       = 'Identifier'
-        station[:]                  = nc.stringtoarr(data['attrs'][self.cnv_varnames_map['STATION_NAME']], NUMCHARS, 'S')
+        station[:]                  = nc.stringtoarr(data['attrs'][self.varnames_map['STATION_NAME']], NUMCHARS, 'S')
         
         nchar_imr_id                = rootgrp.createDimension('nchar_imr_id', 15)
         imr_id                      = rootgrp.createVariable(self.nc_varnames_map['IMR_LOCAL_OBJECT_ID'],'S1',("profile","nchar_imr_id",))
@@ -269,7 +266,7 @@ class CtdLevel0(CtdSbeCnv):
         imr_id.cf_role              = 'profile_id'
         imr_id._Fillvalue           = ''
         imr_id.ioos_category        = 'Identifier'
-        imr_id[:]                   = nc.stringtochar(np.array([config_survey['GlobalAttrs']['InstrumentType'] + '-' + config_survey['GlobalAttrs']['CruiseId'] + '-' + data['attrs'][self.cnv_varnames_map['STATION_NAME']]][0], 'S'))
+        imr_id[:]                   = nc.stringtochar(np.array([config_survey['GlobalAttrs']['InstrumentType'] + '-' + config_survey['GlobalAttrs']['CruiseId'] + '-' + data['attrs'][self.varnames_map['STATION_NAME']]][0], 'S'))
 
 
         prof_dir                    = rootgrp.createVariable(self.nc_varnames_map['PROF_DIR'],"S1",("profile",))
@@ -281,7 +278,7 @@ class CtdLevel0(CtdSbeCnv):
         prof_dir.ioos_category      = 'Other'
         prof_dir[:]                 = 'D'
 
-        if self.cnv_varnames_map['STATION_DEPTH'] in data['data']:        
+        if self.varnames_map['STATION_DEPTH'] in data['data']:        
             ecodepth                    = rootgrp.createVariable(self.nc_varnames_map['STATION_DEPTH'],"f4",("profile",))
             ecodepth.standard_name      = 'sea_floor_depth_below_sea_surface'
             ecodepth.long_name          = 'Bathymetric depth at profile measurement site'        
@@ -293,7 +290,7 @@ class CtdLevel0(CtdSbeCnv):
             ecodepth._Fillvalue         = float(config_survey['VarAttrs']['FillValueCmems'])
             ecodepth.ioos_category      = 'Bathymetry'        
             ecodepth.positive           = 'down'
-            ecodepth_value              = data['attrs'][self.cnv_varnames_map['STATION_DEPTH']].replace(',','.')
+            ecodepth_value              = data['attrs'][self.varnames_map['STATION_DEPTH']].replace(',','.')
             if ecodepth_value:
                 ecodepth[:] = float(ecodepth_value)
             else:
@@ -303,12 +300,12 @@ class CtdLevel0(CtdSbeCnv):
             ecodepth.comment            = 'Bottom depth measured by ship-based acoustic sounder at time of CTD cast. The sea_floor_depth_below_sea_surface is the vertical distance between the sea surface and the seabed as measured at a given point in space including the variance caused by tides and possibly waves.'
             ecodepth.history            = ''
 
-        if self.cnv_varnames_map['STATION_SHIP_LOG'] in data['data']:
+        if self.varnames_map['STATION_SHIP_LOG'] in data['data']:
             log                         = rootgrp.createVariable(self.nc_varnames_map['STATION_SHIP_LOG'],"f4",("profile",))
             log.long_name               = 'ship log number'
             log._Fillvalue              = float(config_survey['VarAttrs']['FillValueCmems'])
             log.ioos_category           = 'Identifier'
-            log[:]                      = float(data['attrs'][self.cnv_varnames_map['STATION_SHIP_LOG']].replace(',','.'))
+            log[:]                      = float(data['attrs'][self.varnames_map['STATION_SHIP_LOG']].replace(',','.'))
             log.references              = ''
             log.comment                 = ''
             log.history                 = ''
@@ -327,13 +324,13 @@ class CtdLevel0(CtdSbeCnv):
         # airtemp.sdn_uom_urn         = 'SDN:P06::UPAA'        
         # # airtemp.sdn_instrument_name = ''
         # # airtemp.sdn_instrument_urn  = ''
-        # airtemp[:]                  = float(data['attrs'][self.cnv_varnames_map['STATION_AIRT']].replace(',','.'))
+        # airtemp[:]                  = float(data['attrs'][self.varnames_map['STATION_AIRT']].replace(',','.'))
         # airtemp.observation_type    = 'measured'
         # airtemp.references          = ''
         # airtemp.comment             = 'Air temperature measured by ship meteorological station. Air temperature is the bulk temperature of the air, not the surface (skin) temperature.'
         # airtemp.history             = ''
         
-        # if self.cnv_varnames_map['STATION_WEATHER'] in data['data']:
+        # if self.varnames_map['STATION_WEATHER'] in data['data']:
         #     weather = rootgrp.createVariable(self.nc_varnames_map['STATION_WEATHER'],"f4",("profile",))
         #     weather.units = ''
         #     weather.standard_name = ''
@@ -348,7 +345,7 @@ class CtdLevel0(CtdSbeCnv):
         #     #weather.sdn_uom_urn         = 'SDN:P06::'
         #     # weather.sdn_instrument_name = ''
         #     # weather.sdn_instrument_urn  = ''
-        #     weather_value = data['attrs'][self.cnv_varnames_map['STATION_WEATHER']]
+        #     weather_value = data['attrs'][self.varnames_map['STATION_WEATHER']]
         #     if weather_value:
         #         weather[:] = float(weather_value)
         #     else: 
@@ -358,7 +355,7 @@ class CtdLevel0(CtdSbeCnv):
         #     weather.comment = ''
         #     weather.history = ''
 
-        # if self.cnv_varnames_map['STATION_SKY'] in data['data']:
+        # if self.varnames_map['STATION_SKY'] in data['data']:
         #     sky                     = rootgrp.createVariable(self.nc_varnames_map['STATION_SKY'],"f4",("profile",))
         #     sky.units               = 'okta'
         #     sky.standard_name       = 'cloud_area_fraction'
@@ -373,7 +370,7 @@ class CtdLevel0(CtdSbeCnv):
         #     # sky.sdn_instrument_name = ''
         #     # sky.sdn_instrument_urn  = ''
         #     sky.ancillary_variable  = ''
-        #     sky_value               = data['attrs'][self.cnv_varnames_map['STATION_SKY']]
+        #     sky_value               = data['attrs'][self.varnames_map['STATION_SKY']]
         #     if sky_value:
         #         sky[:] = float(sky_value)
         #     else: 
@@ -384,7 +381,7 @@ class CtdLevel0(CtdSbeCnv):
         #     sky.comment             = 'Cloud amounts are generally round up to the next okta. For example ‘2 and a bit’ oktas is rounded to 3 oktas. The exception is when more than 7 but less than 8 oktas is observed – in this instance cloud amount is rounded down to 7 oktas.'
         #     sky.history             = ''
 
-        # if self.cnv_varnames_map['STATION_SEA'] in data['data']:
+        # if self.varnames_map['STATION_SEA'] in data['data']:
         #     sea = rootgrp.createVariable(self.nc_varnames_map['STATION_SEA'],"f4",("profile",))
         #     sea.units = '1'
         #     sea.standard_name = 'sea_surface_wave_significant_height'
@@ -399,7 +396,7 @@ class CtdLevel0(CtdSbeCnv):
         #     sea.sdn_uom_urn         = 'SDN:P06::UUUU'
         #     # sea.sdn_instrument_name = ''
         #     # sea.sdn_instrument_urn  = ''
-        #     sea_value = data['attrs'][self.cnv_varnames_map['STATION_SEA']]
+        #     sea_value = data['attrs'][self.varnames_map['STATION_SEA']]
         #     if sea_value:
         #         sea[:] = float(sea_value)
         #     else: 
@@ -424,8 +421,8 @@ class CtdLevel0(CtdSbeCnv):
         # wdir.sdn_uom_urn            = 'SDN:P06::UAAA'
         # # wdir.sdn_instrument_name    = ''
         # # wdir.sdn_instrument_urn     = ''
-        # if data['attrs'][self.cnv_varnames_map['STATION_WDIR']] not in ['\n', '', ' ']:
-        #     wdir[:] = float(data['attrs'][self.cnv_varnames_map['STATION_WDIR']])
+        # if data['attrs'][self.varnames_map['STATION_WDIR']] not in ['\n', '', ' ']:
+        #     wdir[:] = float(data['attrs'][self.varnames_map['STATION_WDIR']])
         # else:
         #     wdir[:] = np.nan
         # wdir.observation_type       = 'measured'
@@ -448,8 +445,8 @@ class CtdLevel0(CtdSbeCnv):
         # wforce.sdn_uom_urn          = 'SDN:P06::UUUU'
         # # wforce.sdn_instrument_name  = ''
         # # wforce.sdn_instrument_urn   = ''
-        # if data['attrs'][self.cnv_varnames_map['STATION_WFORCE']] not in ['\n', '', ' ']:
-        #     wforce[:] = float(data['attrs'][self.cnv_varnames_map['STATION_WFORCE']])
+        # if data['attrs'][self.varnames_map['STATION_WFORCE']] not in ['\n', '', ' ']:
+        #     wforce[:] = float(data['attrs'][self.varnames_map['STATION_WFORCE']])
         # else:
         #     wforce[:] = np.nan
         # wforce.observation_type     = 'observed'
@@ -457,7 +454,7 @@ class CtdLevel0(CtdSbeCnv):
         # wforce.references           = ''
         # wforce.comment              = 'Beaufort wind force" is an index assigned on the Beaufort wind force scale and relates a qualitative description of the degree of disturbance or destruction caused by wind to the speed of the wind. The Beaufort wind scale varies between 0 (qualitatively described as calm, smoke rises vertically, sea appears glassy) (wind speeds in the range 0 - 0.2 m s-1) and 12 (hurricane, wave heights in excess of 14 m) (wind speeds in excess of 32.7 m s-1).'
         # wforce.history              = ''
-        if self.cnv_varnames_map['TEMP00'] in data['data']:
+        if self.varnames_map['TEMP00'] in data['data']:
             temp                        = rootgrp.createVariable(self.nc_varnames_map['TEMP00'],"f4",("profile","z",))
             temp.units                  = 'Celsius'
             temp.standard_name          = 'sea_water_temperature'
@@ -472,15 +469,16 @@ class CtdLevel0(CtdSbeCnv):
             temp.sdn_uom_urn            = 'SDN:P06::UPAA'
             temp.sdn_instrument_name    = 'Sea-Bird SBE 3plus (SBE 3P) temperature sensor'
             temp.sdn_instrument_urn     = 'SDN:L22::TOOL0416'
-            temp[:]                     = data['data'][self.cnv_varnames_map['TEMP00']][::-1].to_numpy()
-            temp.valid_min              = min(data['data'][self.cnv_varnames_map['TEMP00']])
-            temp.valid_max              = max(data['data'][self.cnv_varnames_map['TEMP00']])
+            temp[:]                     = data['data'][self.varnames_map['TEMP00']][::-1].to_numpy()
+            temp.valid_min              = min(data['data'][self.varnames_map['TEMP00']])
+            temp.valid_max              = max(data['data'][self.varnames_map['TEMP00']])
             temp.accuracy               = 0.001
             temp.precision              = ''
             temp.resolution             = 0.0002     
             temp.sensor_manufacturer    = 'SeaBird'
             temp.sensor_model           = 'SBE 3plus'
-            temp.sensor_serial_number   = data['attrs'][self.cnv_var_attrs_map['TEMP00_SENSOR_SN']]
+            if self.cnv_var_attrs_map['TEMP00_SENSOR_SN'] in data['attrs']: 
+                temp.sensor_serial_number   = data['attrs'][self.cnv_var_attrs_map['TEMP00_SENSOR_SN']]
             temp.observation_type       = 'measured'
             temp.references             = ''
             temp.comment                = ''
@@ -496,10 +494,10 @@ class CtdLevel0(CtdSbeCnv):
             temp_qc.flag_values             = config_survey['QcAttrs']['OceansitesFlagValues']
             temp_qc.flag_meanings           = config_survey['QcAttrs']['OceansitesFlagMeanings']
             temp_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
-            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['TEMP00']])
+            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['TEMP00']])
             temp_qc[:]                      = np.asarray(dum)
             
-        if self.cnv_varnames_map['TEMP01'] in data['data']:
+        if self.varnames_map['TEMP01'] in data['data']:
             temp                        = rootgrp.createVariable(self.nc_varnames_map['TEMP01'],"f4",("profile","z",))
             temp.units                  = 'Celsius'
             temp.standard_name          = 'sea_water_temperature'
@@ -514,15 +512,16 @@ class CtdLevel0(CtdSbeCnv):
             temp.sdn_uom_urn            = 'SDN:P06::UPAA'
             temp.sdn_instrument_name    = 'Sea-Bird SBE 3plus (SBE 3P) temperature sensor'
             temp.sdn_instrument_urn     = 'SDN:L22::TOOL0416'
-            temp[:]                     = data['data'][self.cnv_varnames_map['TEMP01']][::-1].to_numpy()
-            temp.valid_min              = min(data['data'][self.cnv_varnames_map['TEMP01']])
-            temp.valid_max              = max(data['data'][self.cnv_varnames_map['TEMP01']])
+            temp[:]                     = data['data'][self.varnames_map['TEMP01']][::-1].to_numpy()
+            temp.valid_min              = min(data['data'][self.varnames_map['TEMP01']])
+            temp.valid_max              = max(data['data'][self.varnames_map['TEMP01']])
             temp.accuracy               = 0.001
             temp.precision              = ''
             temp.resolution             = 0.0002     
             temp.sensor_manufacturer    = 'SeaBird'
             temp.sensor_model           = 'SBE 3plus'
-            temp.sensor_serial_number   = data['attrs'][self.cnv_var_attrs_map['TEMP01_SENSOR_SN']]
+            if self.cnv_var_attrs_map['TEMP01_SENSOR_SN'] in data['attrs']:
+                temp.sensor_serial_number   = data['attrs'][self.cnv_var_attrs_map['TEMP01_SENSOR_SN']]
             temp.observation_type       = 'measured'
             temp.references             = ''
             temp.comment                = ''
@@ -538,10 +537,10 @@ class CtdLevel0(CtdSbeCnv):
             temp_qc.flag_values             = config_survey['QcAttrs']['OceansitesFlagValues']
             temp_qc.flag_meanings           = config_survey['QcAttrs']['OceansitesFlagMeanings']
             temp_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
-            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['TEMP01']])
+            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['TEMP01']])
             temp_qc[:]                      = np.asarray(dum)
             
-        if self.cnv_varnames_map['PRES'] in data['data']:
+        if self.varnames_map['PRES'] in data['data']:
             pres                        = rootgrp.createVariable(self.nc_varnames_map['PRES'],"f4",("profile","z",))
             pres.units                  = 'dbar'
             pres.standard_name          = 'sea_water_pressure'
@@ -555,15 +554,16 @@ class CtdLevel0(CtdSbeCnv):
             pres.sdn_uom_urn            = 'SDN:P06::UPDB'
             pres.sdn_instrument_name    = 'Paroscientific Digiquartz depth sensors'
             pres.sdn_instrument_urn     = 'SDN:L22::TOOL0931'
-            pres[:]                     = data['data'][self.cnv_varnames_map['PRES']][::-1].to_numpy()
-            pres.valid_min              = min(data['data'][self.cnv_varnames_map['PRES']])
-            pres.valid_max              = max(data['data'][self.cnv_varnames_map['PRES']])
+            pres[:]                     = data['data'][self.varnames_map['PRES']][::-1].to_numpy()
+            pres.valid_min              = min(data['data'][self.varnames_map['PRES']])
+            pres.valid_max              = max(data['data'][self.varnames_map['PRES']])
             pres.accuracy               = 0.015
             pres.precision              = ''
             pres.resolution             = 0.001   
             pres.sensor_manufacturer    = 'SeaBird'
             pres.sensor_model           = 'Digiquartz'
-            pres.sensor_serial_number   = data['attrs'][self.cnv_var_attrs_map['PRES_SENSOR_SN']]
+            if self.cnv_var_attrs_map['PRES_SENSOR_SN'] in data['attrs']:
+                pres.sensor_serial_number   = data['attrs'][self.cnv_var_attrs_map['PRES_SENSOR_SN']]
             pres.observation_type       = 'measured'
             pres.references             = ''
             pres.comment                = 'resolution is 0.001% of full scale. Accuracy is ± 0.015% of full scale range'
@@ -579,10 +579,10 @@ class CtdLevel0(CtdSbeCnv):
             pres_qc.flag_values             = config_survey['QcAttrs']['OceansitesFlagValues']
             pres_qc.flag_meanings           = config_survey['QcAttrs']['OceansitesFlagMeanings']
             pres_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
-            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['PRES']])
+            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['PRES']])
             pres_qc[:]                      = np.asarray(dum)
 
-        if self.cnv_varnames_map['PRES'] in data['data']:        
+        if self.varnames_map['PRES'] in data['data']:        
             deph                            = rootgrp.createVariable(self.nc_varnames_map['DEPH'],"f4",("profile","z",))
             deph.units                      = 'meters'
             deph.standard_name              = 'depth'
@@ -598,7 +598,7 @@ class CtdLevel0(CtdSbeCnv):
             deph.uom_urn                    = 'SDN:P06::ULAA'  
             # deph.sdn_instrument_name        = ''
             # deph.sdn_instrument_urn         = ''
-            z                               = gsw.z_from_p(data['data'][self.cnv_varnames_map['PRES']], data['attrs'][self.nc_varnames_map['LATITUDE']])
+            z                               = gsw.z_from_p(data['data'][self.varnames_map['PRES']], data['attrs'][self.nc_varnames_map['LATITUDE']])
             rootgrp.geospatial_vertical_min = min(abs(z))
             rootgrp.geospatial_vertical_max = max(abs(z))
             deph[:]                         = abs(z[::-1])
@@ -622,11 +622,11 @@ class CtdLevel0(CtdSbeCnv):
             deph_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             deph_qc.comment                 = ''
             deph_qc.history                 = ''
-            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['PRES']])
+            dum                             = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['PRES']])
             deph_qc[:]                      = np.asarray(dum)
 
 
-        if self.cnv_varnames_map['CNDC00'] in data['data']:        
+        if self.varnames_map['CNDC00'] in data['data']:        
             cndc                            = rootgrp.createVariable(self.nc_varnames_map['CNDC00'],"f4",("profile","z",))
             cndc.units                      = 'S m-1'
             cndc.standard_name              = 'sea_water_electrical_conductivity'
@@ -641,9 +641,9 @@ class CtdLevel0(CtdSbeCnv):
             cndc.sdn_instrument_name        = 'Sea-Bird SBE 4C conductivity sensor'
             cndc.sdn_instrument_urn         = 'SDN:L22::TOOL0417'
             cndc.ancillary_variable         = self.nc_varnames_map['CNDC00_QC']
-            cndc[:]                         = data['data'][self.cnv_varnames_map['CNDC00']][::-1].to_numpy()
-            cndc.valid_min                  = min(data['data'][self.cnv_varnames_map['CNDC00']])
-            cndc.valid_max                  = max(data['data'][self.cnv_varnames_map['CNDC00']])
+            cndc[:]                         = data['data'][self.varnames_map['CNDC00']][::-1].to_numpy()
+            cndc.valid_min                  = min(data['data'][self.varnames_map['CNDC00']])
+            cndc.valid_max                  = max(data['data'][self.varnames_map['CNDC00']])
             cndc.accuracy                   = 0.0003
             cndc.precision                  = ''
             cndc.resolution                 = 0.00004   
@@ -667,10 +667,10 @@ class CtdLevel0(CtdSbeCnv):
             cndc_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             cndc_qc.comment                 = ''
             cndc_qc.history                 = '' 
-            dum = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['CNDC00']])
+            dum = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['CNDC00']])
             cndc_qc[:] = np.asarray(dum)   
 
-        if self.cnv_varnames_map['CNDC01'] in data['data']:        
+        if self.varnames_map['CNDC01'] in data['data']:        
             cndc                            = rootgrp.createVariable(self.nc_varnames_map['CNDC01'],"f4",("profile","z",))
             cndc.units                      = 'S m-1'
             cndc.standard_name              = 'sea_water_electrical_conductivity'
@@ -685,9 +685,9 @@ class CtdLevel0(CtdSbeCnv):
             cndc.sdn_instrument_name        = 'Sea-Bird SBE 4C conductivity sensor'
             cndc.sdn_instrument_urn         = 'SDN:L22::TOOL0417'
             cndc.ancillary_variable         = self.nc_varnames_map['CNDC01_QC']
-            cndc[:]                         = data['data'][self.cnv_varnames_map['CNDC01']][::-1].to_numpy()
-            cndc.valid_min                  = min(data['data'][self.cnv_varnames_map['CNDC01']])
-            cndc.valid_max                  = max(data['data'][self.cnv_varnames_map['CNDC01']])
+            cndc[:]                         = data['data'][self.varnames_map['CNDC01']][::-1].to_numpy()
+            cndc.valid_min                  = min(data['data'][self.varnames_map['CNDC01']])
+            cndc.valid_max                  = max(data['data'][self.varnames_map['CNDC01']])
             cndc.accuracy                   = 0.0003
             cndc.precision                  = ''
             cndc.resolution                 = 0.00004   
@@ -711,10 +711,10 @@ class CtdLevel0(CtdSbeCnv):
             cndc_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             cndc_qc.comment                 = ''
             cndc_qc.history                 = '' 
-            dum = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['CNDC01']])
+            dum = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['CNDC01']])
             cndc_qc[:] = np.asarray(dum)   
  
-        if self.cnv_varnames_map['PSAL00'] in data['data']:        
+        if self.varnames_map['PSAL00'] in data['data']:        
             psal                            = rootgrp.createVariable(self.nc_varnames_map['PSAL00'],"f4",("profile","z",))
             psal.units                      = 'PSU'
             psal.standard_name              = 'sea_water_practical_salinity'
@@ -729,9 +729,9 @@ class CtdLevel0(CtdSbeCnv):
             psal.sdn_uom_urn                = 'SDN:P06::UUUU'
             psal.sdn_instrument_name        = ''
             psal.sdn_instrument_urn         = ''
-            psal[:]                         = data['data'][self.cnv_varnames_map['PSAL00']][::-1].to_numpy()
-            psal.valid_min                  = min(data['data'][self.cnv_varnames_map['PSAL00']])
-            psal.valid_max                  = max(data['data'][self.cnv_varnames_map['PSAL00']])
+            psal[:]                         = data['data'][self.varnames_map['PSAL00']][::-1].to_numpy()
+            psal.valid_min                  = min(data['data'][self.varnames_map['PSAL00']])
+            psal.valid_max                  = max(data['data'][self.varnames_map['PSAL00']])
             psal.observation_type           = 'calculated'
             psal.reference_scale            = 'PSS-78'
             psal.references                 = config_survey['VarAttrs']['Pss78SbeRef']
@@ -750,10 +750,10 @@ class CtdLevel0(CtdSbeCnv):
             psal_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             psal_qc.comment                 = ''
             psal_qc.history                 = '' 
-            dum = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['PSAL00']])
+            dum = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['PSAL00']])
             psal_qc[:] = np.asarray(dum)   
 
-        if self.cnv_varnames_map['DOX1'] in data['data']:        
+        if self.varnames_map['DOX1'] in data['data']:        
             dox1                            = rootgrp.createVariable(self.nc_varnames_map['DOX1'],"f4",("profile","z",))
             dox1.units                      = 'ml L-1'
             dox1.standard_name              = ''
@@ -768,12 +768,13 @@ class CtdLevel0(CtdSbeCnv):
             dox1.sdn_uom_urn                = 'SDN:P06::UMLL'
             dox1.sdn_instrument_name        = 'Sea-Bird SBE 43 Dissolved Oxygen Sensor'
             dox1.sdn_instrument_urn         = 'SDN:L22::TOOL0036'
-            dox1[:]                         = data['data'][self.cnv_varnames_map['DOX1']][::-1].to_numpy()
-            dox1.valid_min                  = min(data['data'][self.cnv_varnames_map['DOX1']])
-            dox1.valid_max                  = max(data['data'][self.cnv_varnames_map['DOX1']]) 
+            dox1[:]                         = data['data'][self.varnames_map['DOX1']][::-1].to_numpy()
+            dox1.valid_min                  = min(data['data'][self.varnames_map['DOX1']])
+            dox1.valid_max                  = max(data['data'][self.varnames_map['DOX1']]) 
             dox1.sensor_manufacturer        = 'SeaBird'
             dox1.sensor_model               = 'SBE 43'
-            dox1.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['DOX1_SENSOR_SN']]
+            if self.cnv_var_attrs_map['DOX1_SENSOR_SN'] in data['attrs']:
+                dox1.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['DOX1_SENSOR_SN']]
             dox1.observation_type           = 'calculated'
             dox1.references                 = config_survey['VarAttrs']['DoxySbe43Ref']
             dox1.comment                    = 'Dissolved Oxygen concentration derived from DOXV, TEMP00, PRES, PSAL00'
@@ -791,10 +792,10 @@ class CtdLevel0(CtdSbeCnv):
             dox1_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             dox1_qc.comment                 = ''
             dox1_qc.history                 = '' 
-            dum = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['DOX1']])
+            dum = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['DOX1']])
             dox1_qc[:] = np.asarray(dum) 
         
-        if self.cnv_varnames_map['DOXV'] in data['data']:
+        if self.varnames_map['DOXV'] in data['data']:
             doxv                            = rootgrp.createVariable(self.nc_varnames_map['DOXV'],"f4",("profile","z",))
             doxv.units                      = 'volts'
             doxv.standard_name              = ''
@@ -808,9 +809,9 @@ class CtdLevel0(CtdSbeCnv):
             doxv.sdn_uom_urn                = 'SDN:P06::UVLT'
             doxv.sdn_instrument_name        = 'Sea-Bird SBE 43 Dissolved Oxygen Sensor'
             doxv.sdn_instrument_urn         = 'SDN:L22::TOOL0036'
-            doxv[:]                         = data['data'][self.cnv_varnames_map['DOXV']][::-1].to_numpy()
-            doxv.valid_min                  = min(data['data'][self.cnv_varnames_map['DOXV']])
-            doxv.valid_max                  = max(data['data'][self.cnv_varnames_map['DOXV']]) 
+            doxv[:]                         = data['data'][self.varnames_map['DOXV']][::-1].to_numpy()
+            doxv.valid_min                  = min(data['data'][self.varnames_map['DOXV']])
+            doxv.valid_max                  = max(data['data'][self.varnames_map['DOXV']]) 
             doxv.sensor_manufacturer        = 'SeaBird'
             doxv.sensor_model               = 'SBE 43'
             doxv.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['DOX1_SENSOR_SN']]
@@ -822,7 +823,7 @@ class CtdLevel0(CtdSbeCnv):
             doxv.comment                    = 'accuracy is ± 2% of saturation'
             doxv.history                    = ''
 
-        if self.cnv_varnames_map['FCHLA'] in data['data']:
+        if self.varnames_map['FCHLA'] in data['data']:
             fchla                           = rootgrp.createVariable(self.nc_varnames_map['FCHLA'],"f4",("profile","z",))
             fchla.units                     = 'mg m-3'
             fchla.standard_name             = 'mass_concentration_of_inferred_chlorophyll_from_relative_fluorescence_units_in_sea_water'
@@ -837,12 +838,13 @@ class CtdLevel0(CtdSbeCnv):
             fchla.sdn_uom_urn               = 'SDN:P06::UMMC'
             fchla.sdn_instrument_name       = ''
             fchla.sdn_instrument_urn        = 'SDN:L22::'
-            fchla[:]                        = data['data'][self.cnv_varnames_map['FCHLA']][::-1].to_numpy()
-            fchla.valid_min                 = min(data['data'][self.cnv_varnames_map['FCHLA']])
-            fchla.valid_max                 = max(data['data'][self.cnv_varnames_map['FCHLA']]) 
+            fchla[:]                        = data['data'][self.varnames_map['FCHLA']][::-1].to_numpy()
+            fchla.valid_min                 = min(data['data'][self.varnames_map['FCHLA']])
+            fchla.valid_max                 = max(data['data'][self.varnames_map['FCHLA']]) 
             fchla.sensor_manufacturer       = 'SeaBird'
             fchla.sensor_model              = ''
-            fchla.sensor_serial_number      = data['attrs'][self.cnv_var_attrs_map['FCHLA_SENSOR_SN']]
+            if self.cnv_var_attrs_map['FCHLA_SENSOR_SN'] in data['attrs']:
+                fchla.sensor_serial_number      = data['attrs'][self.cnv_var_attrs_map['FCHLA_SENSOR_SN']]
             fchla.observation_type          = 'calculated'
             fchla.references                = ''
             fchla.comment                   = 'Artificial chlorophyll data computed from bio-optical sensor raw voltage measurements. The fluorometer is equipped with a 470nm peak wavelength LED to irradiate and a photodetector paired with an optical filter which measures everything that fluoresces in the region of 695nm. Originally expressed in ug/l, 1l = 0.001m3 was assumed.'
@@ -860,11 +862,11 @@ class CtdLevel0(CtdSbeCnv):
             fchla_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             fchla_qc.comment                 = ''
             fchla_qc.history                 = '' 
-            dum                              = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['FCHLA']])
+            dum                              = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['FCHLA']])
             fchla_qc[:]                      = np.asarray(dum) 
  
 
-        if self.cnv_varnames_map['PAR'] in data['data']:
+        if self.varnames_map['PAR'] in data['data']:
             par = rootgrp.createVariable(self.nc_varnames_map['PAR'],"f4",("profile","z",))
             par.units = 'umole m-2 s-1'
             par.standard_name = 'downwelling_photosynthetic_photon_flux_in_sea_water'
@@ -873,9 +875,9 @@ class CtdLevel0(CtdSbeCnv):
             par._Fillvalue = float(config_survey['VarAttrs']['FillValueCmems'])
             par.ioos_category = 'Other'
             par.ancillary_variable = self.nc_varnames_map['PAR_QC']
-            par[:] = data['data'][self.cnv_varnames_map['PAR']][::-1].to_numpy()
-            par.valid_min = min(data['data'][self.cnv_varnames_map['PAR']])
-            par.valid_max = max(data['data'][self.cnv_varnames_map['PAR']]) 
+            par[:] = data['data'][self.varnames_map['PAR']][::-1].to_numpy()
+            par.valid_min = min(data['data'][self.varnames_map['PAR']])
+            par.valid_max = max(data['data'][self.varnames_map['PAR']]) 
             par.sensor_manufacturer = 'SeaBird'
             par.sensor_model = ''
             par.sensor_serial_number = ''#data['attrs'][self.cnv_var_attrs_map['DOX1_SENSOR_SN']]
@@ -896,7 +898,7 @@ class CtdLevel0(CtdSbeCnv):
             par_qc.references              = config_survey['QcAttrs']['OceansitesQualityControlConvention']
             par_qc.comment                 = ''
             par_qc.history                 = '' 
-            dum                            = [self.qc_flag['no_qc']] * len(data['data'][self.cnv_varnames_map['PAR']])
+            dum                            = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['PAR']])
             par_qc[:]                      = np.asarray(dum) 
 
         
