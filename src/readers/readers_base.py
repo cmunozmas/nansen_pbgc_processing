@@ -82,7 +82,7 @@ class ReadersBase():
 
         self.cnv_varnames_map_dfn_odv = {'PRES': 'PRE',
                                  'PSAL00': 'SAL',
-                                 'PSAL01': 'SAL1',
+                                 'PSAL01': 'SAL.1',
                                  'TEMP00': 'TEM', 
                                  'TEMP01': 'TEM.1',
                                  'DOXV': None,
@@ -96,7 +96,23 @@ class ReadersBase():
                                  'STATION_NAME': 'station_name',
                                  'STATION_SHIP_LOG': None,
                                 }        
-        
+
+        self.cnv_varnames_map_imrop = {'PRES': 'PRE',
+                                 'PSAL00': 'SAL',
+                                 'PSAL01': None,
+                                 'TEMP00': 'TEM', 
+                                 'TEMP01': None,
+                                 'DOXV': None,
+                                 'DOX1': 'OXY',
+                                 'FCHLA': 'FLU',                                 
+                                 'PAR': None,
+                                 'CNDC00': None,
+                                 'CNDC01': None,
+                                 'ALT': None,
+                                 'STATION_DEPTH': 'Bot. Depth [m]',  
+                                 'STATION_NAME': 'station_name',
+                                 'STATION_SHIP_LOG': None,
+                                }           
         
     def set_varnames_map(self, config):
         if config['Settings']['CtdFormat'] == '0':
@@ -105,6 +121,9 @@ class ReadersBase():
             self.varnames_map = self.cnv_varnames_map_dfn_v1
         elif config['Settings']['CtdFormat'] == '2':
             self.varnames_map = self.cnv_varnames_map_dfn_odv    
+        elif config['Settings']['CtdFormat'] == '3':
+            self.varnames_map = self.cnv_varnames_map_imrop              
         return self.varnames_map    
+    
     def get_varnames_map(self):        
         return self.varnames_map        

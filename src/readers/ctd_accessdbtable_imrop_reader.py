@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Oct 12 04:12:00 2020
+Created on Thu Oct  6 14:44:26 2022
 
 @author: a33272
 """
+
+
 import glob
 import numpy as np
 import pandas as pd
 from readers.readers_base import ReadersBase as ReadersBase
 
-class CtdQuickcastOdv(ReadersBase):
+class CtdAccessDbImrop(ReadersBase):
     def __init__(self, *args): 
-        super(CtdQuickcastOdv, self).__init__(*args)
+        super(CtdAccessDbImrop, self).__init__(*args)
 
         return
          
@@ -24,14 +26,12 @@ class CtdQuickcastOdv(ReadersBase):
         files_list = glob.glob(files_path + 'Sta*.txt')
         return files_list
         
-    def split_survey_odv_into_stations(self, files_list, data_in_path, config):
+    def split_survey_imrop_into_stations(self, files_list, data_in_path, config):
         self.varnames_map = self.set_varnames_map(config)
         # open the all survey_csv file
         df = pd.DataFrame()
         df = pd.read_csv(files_list, delimiter='\t')
         df = df.fillna(method='ffill')
-         # Delete the "type" column from the dataframe
-        df = df.drop("Type", axis=1)
 
          # change the cruise type to string
         df= df.astype({"Cruise": str})
@@ -61,7 +61,6 @@ class CtdQuickcastOdv(ReadersBase):
             df.loc[~(df[self.varnames_map['DOX1']] > 0), self.varnames_map['DOX1']]=np.nan
 
         # split 
-
         data= pd.DataFrame()
         for i in df['Station']:
             data= df.loc[df['Station'] == i]

@@ -16,6 +16,7 @@ import configparser
 import netCDF4 as nc
 import readers.ctd_sbe_cnv_reader as ctd_sbe_cnv_reader
 import readers.ctd_sbe_quickcast_odv_reader as ctd_quickcast_odv_reader
+import readers.ctd_accessdbtable_imrop_reader as ctd_accessdbtable_imrop_reader
 import readers.readers_base as readers_base
 import exporters.ctd_level0_exporter as ctd_level0_exporter
 import exporters.ctd_level1C_exporter as ctd_level1C_exporter
@@ -52,6 +53,7 @@ for cruise_id in cruise_id_list:
     # Initialize related processing classes
     reader = ctd_sbe_cnv_reader.CtdSbeCnv(config)  
     reader_odv = ctd_quickcast_odv_reader.CtdQuickcastOdv(config)
+    reader_imrop = ctd_accessdbtable_imrop_reader.CtdAccessDbImrop(config)
     base_reader = readers_base.ReadersBase(config)
     exporter = ctd_level0_exporter.CtdLevel0(config_survey)
     exporter1 = ctd_level1C_exporter.CtdLevel1C(config_survey)
@@ -64,8 +66,12 @@ for cruise_id in cruise_id_list:
         files_list = reader.get_input_files_list(data_in_path)
     elif ctd_format == 2:
         files_list = reader_odv.get_input_files_list(cruise_id, data_in_path)
-        #reader_odv.split_survey_odv_into_stations(files_list[0], data_in_path, config)
+        reader_odv.split_survey_odv_into_stations(files_list[0], data_in_path, config)
         files_list = reader_odv.get_input_station_files_list(data_in_path)
+    elif ctd_format == 3:
+        files_list = reader_imrop.get_input_files_list(cruise_id, data_in_path)
+        reader_imrop.split_survey_imrop_into_stations(files_list[0], data_in_path, config)
+        files_list = reader_imrop.get_input_station_files_list(data_in_path)
         
     dataset = {}
     for file_path in files_list:
@@ -73,7 +79,8 @@ for cruise_id in cruise_id_list:
             data_df, attrs = reader.load_data(file_path, config)
         elif ctd_format == 2:           
             data_df, attrs = reader_odv.load_data(file_path, config)
-            
+        elif ctd_format == 3:           
+            data_df, attrs = reader_imrop.load_data(file_path, config)            
             
         station = 'sta' + file_path[-8:-4]
         #station = file_path.rsplit('/', 1)[1][1:-4]
@@ -85,10 +92,15 @@ for cruise_id in cruise_id_list:
             dataset[station]['attrs'] = reader.load_header_attrs(file_path, dataset[station]['attrs'])
         elif ctd_format == 2:
             dataset[station]['attrs'] = reader_odv.load_header_attrs(data_df, dataset[station]['attrs']) 
-
+        elif ctd_format == 3:
+            dataset[station]['attrs'] = reader_imrop.load_header_attrs(data_df, dataset[station]['attrs']) 
     #Export L0 NetCDF
     exporter.create_data_out_directories(data_out_path)
-    data_out_path_year = data_out_path + config_survey['GlobalAttrs']['CruiseId'][0:4]
+    if (ctd_format == 0) or (ctd_format == 1) or (ctd_format == 2):
+        data_out_path_year = data_out_path + config_survey['GlobalAttrs']['CruiseId'][0:4]
+    elif (ctd_format == 3):
+        data_out_path_year = data_out_path + config_survey['GlobalAttrs']['CruiseId'][3:7]
+        
     exporter.create_data_out_directories(data_out_path_year)
     data_out_path = data_out_path_year + '/' + config_survey['GlobalAttrs']['CruiseId'] + '/'
     exporter.create_data_out_directories(data_out_path)
@@ -113,7 +125,7 @@ for cruise_id in cruise_id_list:
     # Load L1 netCDF and perform QC
     files_list = glob.glob(data_out_path_L1A + '*L1A*.nc')
     for file_path in files_list: 
-        rtqc_manager.perform_rtqc(file_path, config_survey)
+        rtqc_manager.perform_rtqc(file_path, dataset[station], config_survey)
      
 
 

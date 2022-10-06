@@ -17,8 +17,10 @@ import os
 
 #from readers.readers_base import ReadersBase as ReadersBase
 from readers.ctd_sbe_cnv_reader import CtdSbeCnv as CtdSbeCnv
+from readers.ctd_sbe_quickcast_odv_reader import CtdQuickcastOdv as CtdQuickcastOdv
+from readers.ctd_accessdbtable_imrop_reader import CtdAccessDbImrop as CtdAccessDbImrop
 
-class CtdLevel0(CtdSbeCnv):
+class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
     def __init__(self, *args):
         super(CtdLevel0, self).__init__(*args)
         
@@ -942,7 +944,7 @@ class CtdLevel0(CtdSbeCnv):
                 dum                            = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['PAR']])
                 par_qc[:]                      = np.asarray(dum) 
 
-        elif (config['Settings']['CtdFormat'] == '2'):
+        elif (config['Settings']['CtdFormat'] == '2') or (config['Settings']['CtdFormat'] == '3'):
                
             nchar_sdn_cruise            = rootgrp.createDimension('nchar_sdn_cruise', len(config_survey['GlobalAttrs']['CruiseId']))
             sdn_cruise                  = rootgrp.createVariable(self.nc_varnames_map['SDN_CRUISE'],'S1',("profile","nchar_sdn_cruise",))
@@ -973,7 +975,7 @@ class CtdLevel0(CtdSbeCnv):
             imr_id.cf_role              = 'profile_id'
             imr_id._Fillvalue           = ''
             imr_id.ioos_category        = 'Identifier'
-            imr_id[:]                   = nc.stringtochar(np.array([config_survey['GlobalAttrs']['InstrumentType'] + '-' + config_survey['GlobalAttrs']['CruiseId'] + '-' + data['attrs'][self.varnames_map['STATION_NAME']]][0], 'S'))
+            #imr_id[:]                   = nc.stringtochar(np.array([config_survey['GlobalAttrs']['InstrumentType'] + '-' + config_survey['GlobalAttrs']['CruiseId'] + '-' + data['attrs'][self.varnames_map['STATION_NAME']]][0], 'S'))
     
     
             prof_dir                    = rootgrp.createVariable(self.nc_varnames_map['PROF_DIR'],"S1",("profile",))
