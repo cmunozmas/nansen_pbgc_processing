@@ -113,7 +113,7 @@ class RtqcManager(Rtqc):
         var_name_qc = exporter.nc_varnames_map['TEMP00_QC']
         temp_qc = dataset_nc.variables[var_name_qc][:][0]
         #temp = dataset_nc.variables[var_name][:] 
-        pres = dataset_nc.variables[exporter.nc_varnames_map['PRES']][:] 
+        pres = dataset_nc.variables[exporter.nc_varnames_map['PRES']][:][0] 
         temp_qc_spike = rtqc.rtqc9_spike_test(var_name, temp, temp_qc, pres, temp_qc)
         dataset_nc.variables[var_name_qc][:] = temp_qc_spike
     

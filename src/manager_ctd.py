@@ -112,7 +112,7 @@ for cruise_id in cruise_id_list:
       
     # Load L1 netCDF and perform QC
     files_list = glob.glob(data_out_path_L1A + '*L1A*.nc')
-    for file_path in files_list:        
+    for file_path in files_list: 
         rtqc_manager.perform_rtqc(file_path, config_survey)
      
 

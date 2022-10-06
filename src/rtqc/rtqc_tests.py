@@ -193,12 +193,11 @@ class Rtqc(CtdLevel0):
                 V1 = var_data[i-1]
                 V2 = var_data[i]
                 V3 = var_data[i+1]
-                test_val = abs(V2-(V3 + V1)/2) - abs((V3-V1)/2)
-                
+                test_val = abs(V2-(V3 + V1)/2) - abs((V3-V1)/2)                
                 if var_data_qc[i] == 9:
                     var_data_qc_spike.append(9)
                 elif test_val > VAL1 and pres_data[i] < DEPTH_THRESH:
-                    var_data_qc_spike.append(4)
+                    var_data_qc_spike.append(4)               
                 elif test_val > VAL2 and pres_data[i] >= DEPTH_THRESH:
                     var_data_qc_spike.append(4)
                 else:
