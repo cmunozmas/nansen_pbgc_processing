@@ -45,9 +45,8 @@ class CtdQuickcastOdv(ReadersBase):
 
         return
          
-    def get_input_files_list(self, config, files_path):
-        files_list = glob.glob(files_path + config['Settings']['CruiseId'] + '.txt')
-        #files_list = glob.glob(files_path + config['Settings']['CruiseId'] + '.txt')
+    def get_input_files_list(self, cruise_id, files_path):
+        files_list = glob.glob(files_path + cruise_id + '.txt')
         return files_list
 
     def get_input_station_files_list(self, files_path):
@@ -73,14 +72,22 @@ class CtdQuickcastOdv(ReadersBase):
         df.rename(columns = {'yyyy-mm-dd hh:mm':'Date'}, inplace = True)
         df['Date']= pd.to_datetime(df['Date'])
 
-
-        df.loc[~(df[self.varnames_map['FCHLA']] > 0), self.varnames_map['FCHLA']]=np.nan
-        df.loc[~(df['TEM.1'] > 0), 'TEM.1']=np.nan
-        df.loc[~(df['SAL.1'] > 0), 'SAL.1']=np.nan
-        df.loc[~(df['ALT'] > 0), 'ALT']=np.nan
-        df.loc[~(df['TEM.1'] > 0), 'TEM.1']=np.nan
-        df.loc[~(df['PAR'] > 0), 'PAR']=np.nan
-        df.loc[~(df['OXY'] > 0), 'OXY']=np.nan
+        if self.varnames_map['FCHLA'] in df.columns:
+              df.loc[~(df[self.varnames_map['FCHLA']] > 0), self.varnames_map['FCHLA']]=np.nan
+        if self.varnames_map['TEMP00'] in df.columns:      
+            df.loc[~(df[self.varnames_map['TEMP00']] > 0), self.varnames_map['TEMP00']]=np.nan
+        if self.varnames_map['TEMP01'] in df.columns:      
+            df.loc[~(df[self.varnames_map['TEMP01']] > 0), self.varnames_map['TEMP01']]=np.nan
+        if self.varnames_map['PSAL00'] in df.columns:    
+            df.loc[~(df[self.varnames_map['PSAL00']] > 0), self.varnames_map['PSAL00']]=np.nan
+        if self.varnames_map['PSAL01'] in df.columns:    
+            df.loc[~(df[self.varnames_map['PSAL01']] > 0), self.varnames_map['PSAL01']]=np.nan
+        if self.varnames_map['ALT'] in df.columns:    
+            df.loc[~(df[self.varnames_map['ALT']] > 0), self.varnames_map['ALT']]=np.nan            
+        if self.varnames_map['PAR'] in df.columns:  
+            df.loc[~(df[self.varnames_map['PAR']] > 0), self.varnames_map['PAR']]=np.nan
+        if self.varnames_map['DOX1'] in df.columns:            
+            df.loc[~(df[self.varnames_map['DOX1']] > 0), self.varnames_map['DOX1']]=np.nan
 
         # split 
 
@@ -106,7 +113,28 @@ class CtdQuickcastOdv(ReadersBase):
         df_a = df_a.iloc[:1]
        
         # clean every column different than lat, lon, date, station, cruise
-        df_a = df_a.drop(["Bot. Depth [m]", 'Cruise', "PRE", 'TEM', 'SAL', 'OXY', 'FLU', 'PAR','TEM.1', 'SAL.1', 'ALT'], axis = 1) 
+        if self.varnames_map['FCHLA'] in df_a.columns:
+            df_a = df_a.drop(self.varnames_map['FCHLA'], axis = 1)              
+        if self.varnames_map['TEMP00'] in df_a.columns:      
+            df_a = df_a.drop(self.varnames_map['TEMP00'], axis = 1) 
+        if self.varnames_map['TEMP01'] in df_a.columns:      
+            df_a = df_a.drop(self.varnames_map['TEMP01'], axis = 1) 
+        if self.varnames_map['PSAL00'] in df_a.columns:    
+            df_a = df_a.drop(self.varnames_map['PSAL00'], axis = 1) 
+        if self.varnames_map['PSAL01'] in df_a.columns:    
+            df_a = df_a.drop(self.varnames_map['PSAL01'], axis = 1) 
+        if self.varnames_map['ALT'] in df_a.columns:    
+            df_a = df_a.drop(self.varnames_map['ALT'], axis = 1)             
+        if self.varnames_map['PAR'] in df_a.columns:  
+            df_a = df_a.drop(self.varnames_map['PAR'], axis = 1) 
+        if self.varnames_map['DOX1'] in df_a.columns:            
+            df_a = df_a.drop(self.varnames_map['DOX1'], axis = 1) 
+        if self.varnames_map['DOX1'] in df_a.columns:            
+            df_a = df_a.drop(self.varnames_map['DOX1'], axis = 1)             
+        if self.varnames_map['STATION_DEPTH'] in df_a.columns:            
+            df_a = df_a.drop(self.varnames_map['STATION_DEPTH'], axis = 1)             
+            
+        #df_a = df_a.drop(["Bot. Depth [m]", 'Cruise', "PRE", 'TEM', 'SAL', 'OXY', 'FLU', 'PAR','TEM.1', 'SAL.1', 'ALT'], axis = 1) 
           # REPLACE station by filename
         df_a = df_a.astype({"Station": str})
         df_a['Station'] = df_a['Station'].replace([df_a['Station'][0]],'Sta0' + df_a['Station'][0] + '.txt')

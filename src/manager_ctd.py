@@ -63,7 +63,7 @@ for cruise_id in cruise_id_list:
     if (ctd_format == 0) or (ctd_format == 1):
         files_list = reader.get_input_files_list(data_in_path)
     elif ctd_format == 2:
-        files_list = reader_odv.get_input_files_list(config, data_in_path)
+        files_list = reader_odv.get_input_files_list(cruise_id, data_in_path)
         #reader_odv.split_survey_odv_into_stations(files_list[0], data_in_path, config)
         files_list = reader_odv.get_input_station_files_list(data_in_path)
         

@@ -91,6 +91,7 @@ class ReadersBase():
                                  'PAR': 'PAR',
                                  'CNDC00': None,
                                  'CNDC01': None,
+                                 'ALT': 'ALT',
                                  'STATION_DEPTH': 'Bot. Depth [m]',  
                                  'STATION_NAME': 'station_name',
                                  'STATION_SHIP_LOG': None,
