@@ -16,9 +16,9 @@ import time
 import os
 
 #from readers.readers_base import ReadersBase as ReadersBase
-from readers.ctd_sbe_cnv_reader import CtdSbeCnv as CtdSbeCnv
-from readers.ctd_sbe_quickcast_odv_reader import CtdQuickcastOdv as CtdQuickcastOdv
-from readers.ctd_accessdbtable_imrop_reader import CtdAccessDbImrop as CtdAccessDbImrop
+from readers.ctd_readers.ctd_sbe_cnv_reader import CtdSbeCnv as CtdSbeCnv
+from readers.ctd_readers.ctd_sbe_quickcast_odv_reader import CtdQuickcastOdv as CtdQuickcastOdv
+from readers.ctd_readers.ctd_accessdbtable_imrop_reader import CtdAccessDbImrop as CtdAccessDbImrop
 
 class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
     def __init__(self, *args):
@@ -30,7 +30,7 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                                 'POSITION_QC': 'POSITION_QC',
                                 
                                 'CRS': 'crs',                                                              
-                                'SDN_CRUISE':'SDN_CRUISE',
+                                'SDN_CRUISE':'CRUISE',
                                 'SDN_EDMO_CODE':'SDN_EDMO_CODE',
                                 'IMR_LOCAL_OBJECT_ID': 'IMR_LOCAL_OBJECT_ID',
                                 'PROF_DIR': 'PROF_DIR',
@@ -79,7 +79,10 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
     def create_nc_file(self, file_path, config, config_survey, data):
 
         self.varnames_map = self.set_varnames_map(config)
-        
+        #if self.varnames_trigger == True:
+        if config['Settings']['CtdFormat'] == '0':
+            self.varnames_map = self.set_individual_varnames_map(data['data'].columns)
+        print('----  Exporting NetCDF L0 for station  --  ' + data['attrs']['station'])
         attrs_date = data['attrs']['datetime'].strftime('%Y-%m-%d')
         nc_file_name = 'EAF-NANSEN_C' + config_survey['GlobalAttrs']['CruiseId'] + '_CTD_L0_' + attrs_date + '_' + data['attrs']['station'] + '.nc'
         rootgrp = Dataset(file_path + nc_file_name, "w", format="NETCDF4")
@@ -90,8 +93,8 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
         rootgrp.mission_start_date = config_survey.get('GlobalAttrs', 'CruiseDateStart')#str(['GlobalAttrs']['CruiseDateStart'])
         rootgrp.mission_stop_date = config_survey.get('GlobalAttrs', 'CruiseDateStop')#str(['GlobalAttrs']['CruiseSDateStop'])
         rootgrp.mission_purpose = config_survey['GlobalAttrs']['CruisePurpose']
-        rootgrp.summary = config_survey['GlobalAttrs']['Abstract']
-        rootgrp.title = config_survey['GlobalAttrs']['Title']
+        rootgrp.summary = config_survey['GlobalAttrs']['CtdAbstract']
+        rootgrp.title = config_survey['GlobalAttrs']['CtdTitle']
         rootgrp.citation = config_survey['GlobalAttrs']['Citation']
         rootgrp.acknowledgement = config_survey['GlobalAttrs']['Acknowledgement']
         rootgrp.license = config_survey['GlobalAttrs']['License']
@@ -255,22 +258,22 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
             sdn_edmo.ioos_category      = 'Identifier'
             sdn_edmo[:]                 = nc.stringtochar(np.array([str(config_survey['VarAttrs']['SdnEdmoCode'])], 'S'))
             
-            NUMCHARS                    = len(data['attrs'][self.varnames_map['STATION_NAME']])
+            NUMCHARS                    = len(data['attrs'][self.cnv_var_attrs_map['STATION_NAME']])
             nchar_station               = rootgrp.createDimension('nchar_station', NUMCHARS)
             station                     = rootgrp.createVariable(self.nc_varnames_map['STATION_NAME'],'S1',("profile","nchar_station",))
             station.long_name           = 'IMR Station Identifier'
             station._Fillvalue          = ''
             station.ancillary_variable  = ''
             station.ioos_category       = 'Identifier'
-            station[:]                  = nc.stringtoarr(data['attrs'][self.varnames_map['STATION_NAME']], NUMCHARS, 'S')
+            station[:]                  = nc.stringtoarr(data['attrs'][self.cnv_var_attrs_map['STATION_NAME']], NUMCHARS, 'S')
             
-            nchar_imr_id                = rootgrp.createDimension('nchar_imr_id', 15)
-            imr_id                      = rootgrp.createVariable(self.nc_varnames_map['IMR_LOCAL_OBJECT_ID'],'S1',("profile","nchar_imr_id",))
-            imr_id.long_name            = 'IMR Data Granule Identifier'
-            imr_id.cf_role              = 'profile_id'
-            imr_id._Fillvalue           = ''
-            imr_id.ioos_category        = 'Identifier'
-            imr_id[:]                   = nc.stringtochar(np.array([config_survey['GlobalAttrs']['InstrumentType'] + '-' + config_survey['GlobalAttrs']['CruiseId'] + '-' + data['attrs'][self.varnames_map['STATION_NAME']]][0], 'S'))
+            # nchar_imr_id                = rootgrp.createDimension('nchar_imr_id', 15)
+            # imr_id                      = rootgrp.createVariable(self.nc_varnames_map['IMR_LOCAL_OBJECT_ID'],'S1',("profile","nchar_imr_id",))
+            # imr_id.long_name            = 'IMR Data Granule Identifier'
+            # imr_id.cf_role              = 'profile_id'
+            # imr_id._Fillvalue           = ''
+            # imr_id.ioos_category        = 'Identifier'
+            # imr_id[:]                   = nc.stringtochar(np.array([config_survey['GlobalAttrs']['InstrumentType'] + '-' + config_survey['GlobalAttrs']['CruiseId'] + '-' + data['attrs'][self.varnames_map['STATION_NAME']]][0], 'S'))
     
     
             prof_dir                    = rootgrp.createVariable(self.nc_varnames_map['PROF_DIR'],"S1",("profile",))
@@ -282,7 +285,7 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
             prof_dir.ioos_category      = 'Other'
             prof_dir[:]                 = 'D'
     
-            if self.varnames_map['STATION_DEPTH'] in data['data']:        
+            if self.cnv_var_attrs_map['STATION_DEPTH'] in data['data']:        
                 ecodepth                    = rootgrp.createVariable(self.nc_varnames_map['STATION_DEPTH'],"f4",("profile",))
                 ecodepth.standard_name      = 'sea_floor_depth_below_sea_surface'
                 ecodepth.long_name          = 'Bathymetric depth at profile measurement site'        
@@ -294,7 +297,7 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 ecodepth._Fillvalue         = float(config_survey['VarAttrs']['FillValueCmems'])
                 ecodepth.ioos_category      = 'Bathymetry'        
                 ecodepth.positive           = 'down'
-                ecodepth_value              = data['attrs'][self.varnames_map['STATION_DEPTH']].replace(',','.')
+                ecodepth_value              = data['attrs'][self.cnv_var_attrs_map['STATION_DEPTH']].replace(',','.')
                 if ecodepth_value:
                     ecodepth[:] = float(ecodepth_value)
                 else:
@@ -304,12 +307,12 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 ecodepth.comment            = 'Bottom depth measured by ship-based acoustic sounder at time of CTD cast. The sea_floor_depth_below_sea_surface is the vertical distance between the sea surface and the seabed as measured at a given point in space including the variance caused by tides and possibly waves.'
                 ecodepth.history            = ''
     
-            if self.varnames_map['STATION_SHIP_LOG'] in data['data']:
+            if self.cnv_var_attrs_map['STATION_SHIP_LOG'] in data['data']:
                 log                         = rootgrp.createVariable(self.nc_varnames_map['STATION_SHIP_LOG'],"f4",("profile",))
                 log.long_name               = 'ship log number'
                 log._Fillvalue              = float(config_survey['VarAttrs']['FillValueCmems'])
                 log.ioos_category           = 'Identifier'
-                log[:]                      = float(data['attrs'][self.varnames_map['STATION_SHIP_LOG']].replace(',','.'))
+                log[:]                      = float(data['attrs'][self.cnv_var_attrs_map['STATION_SHIP_LOG']].replace(',','.'))
                 log.references              = ''
                 log.comment                 = ''
                 log.history                 = ''
@@ -653,7 +656,8 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 cndc.resolution                 = 0.00004   
                 cndc.sensor_manufacturer        = 'SeaBird'
                 cndc.sensor_model               = 'SBE 4C'
-                cndc.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['CNDC00_SENSOR_SN']]
+                if self.cnv_var_attrs_map['CNDC00_SENSOR_SN'] in data['attrs']:
+                    cndc.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['CNDC00_SENSOR_SN']]
                 cndc.observation_type           = 'measured'
                 cndc.references                 = ''
                 cndc.comment                    = ''
@@ -697,7 +701,8 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 cndc.resolution                 = 0.00004   
                 cndc.sensor_manufacturer        = 'SeaBird'
                 cndc.sensor_model               = 'SBE 4C'
-                cndc.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['CNDC01_SENSOR_SN']]
+                if self.cnv_var_attrs_map['CNDC01_SENSOR_SN'] in data['attrs']:
+                    cndc.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['CNDC01_SENSOR_SN']]
                 cndc.observation_type           = 'measured'
                 cndc.references                 = ''
                 cndc.comment                    = ''
@@ -717,7 +722,7 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 cndc_qc.history                 = '' 
                 dum = [self.qc_flag['no_qc']] * len(data['data'][self.varnames_map['CNDC01']])
                 cndc_qc[:] = np.asarray(dum)   
-     
+                
             if self.varnames_map['PSAL00'] in data['data']:        
                 psal                            = rootgrp.createVariable(self.nc_varnames_map['PSAL00'],"f4",("profile","z",))
                 psal.units                      = 'PSU'
@@ -857,7 +862,8 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 doxv.valid_max                  = max(data['data'][self.varnames_map['DOXV']]) 
                 doxv.sensor_manufacturer        = 'SeaBird'
                 doxv.sensor_model               = 'SBE 43'
-                doxv.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['DOX1_SENSOR_SN']]
+                if self.cnv_var_attrs_map['DOX1_SENSOR_SN'] in data['attrs']:
+                    doxv.sensor_serial_number       = data['attrs'][self.cnv_var_attrs_map['DOX1_SENSOR_SN']]
                 doxv.accuracy                   = 2
                 doxv.precision                  = ''
                 doxv.resolution                 = ''  
@@ -1365,7 +1371,7 @@ class CtdLevel0(CtdSbeCnv, CtdQuickcastOdv, CtdAccessDbImrop):
                 par.comment = ''
                 par.history = '' 
                 
-                par_qc = rootgrp.createVariable(self.nc_varnames_map['PAR_QC'],"f4",("profile","z",))
+                par_qc = rootgrp.createVariable(self.nc_varnames_map['PAR_QC'],"i1",("profile","z",))
                 par_qc.long_name               = 'OceanSites quality flag'
                 par_qc.Conventions             = config_survey['QcAttrs']['OceansitesQualityControlConvention']
                 par_qc._Fillvalue              = int(config_survey['QcAttrs']['OceansitesFillValue'])

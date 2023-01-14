@@ -11,7 +11,7 @@ import gsw
 import numpy as np
 import datetime
 
-from exporters.ctd_level0_exporter import CtdLevel0 as CtdLevel0
+from exporters.ctd_nc_exporters.ctd_level0_exporter import CtdLevel0 as CtdLevel0
 
 
 class CtdLevel1C(CtdLevel0):

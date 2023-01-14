@@ -8,8 +8,8 @@ Created on Tue Sep 27 15:10:05 2022
 import netCDF4 as nc
 
 from rtqc.rtqc_tests import Rtqc
-from exporters.ctd_level0_exporter import CtdLevel0 as CtdLevel0
-import exporters.ctd_level0_exporter as ctd_level0_exporter
+from exporters.ctd_nc_exporters.ctd_level0_exporter import CtdLevel0 as CtdLevel0
+import exporters.ctd_nc_exporters.ctd_level0_exporter as ctd_level0_exporter
 import rtqc.rtqc_tests as rtqc_tests
 
 class RtqcManager(Rtqc, CtdLevel0):

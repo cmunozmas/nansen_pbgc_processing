@@ -8,7 +8,7 @@ Created on Mon Oct 12 04:12:00 2020
 import glob
 import numpy as np
 import pandas as pd
-from readers.readers_base import ReadersBase as ReadersBase
+from readers.ctd_readers.ctd_readers_base import ReadersBase as ReadersBase
 
 class CtdQuickcastOdv(ReadersBase):
     def __init__(self, *args): 
@@ -17,7 +17,7 @@ class CtdQuickcastOdv(ReadersBase):
         return
          
     def get_input_files_list(self, cruise_id, files_path):
-        files_list = glob.glob(files_path + cruise_id + '.txt')
+        files_list = glob.glob(files_path + cruise_id + '_CTD_Export.txt')
         return files_list
 
     def get_input_station_files_list(self, files_path):
@@ -61,7 +61,6 @@ class CtdQuickcastOdv(ReadersBase):
             df.loc[~(df[self.varnames_map['DOX1']] > 0), self.varnames_map['DOX1']]=np.nan
 
         # split 
-
         data= pd.DataFrame()
         for i in df['Station']:
             data= df.loc[df['Station'] == i]
@@ -104,7 +103,10 @@ class CtdQuickcastOdv(ReadersBase):
             df_a = df_a.drop(self.varnames_map['DOX1'], axis = 1)             
         if self.varnames_map['STATION_DEPTH'] in df_a.columns:            
             df_a = df_a.drop(self.varnames_map['STATION_DEPTH'], axis = 1)             
-            
+        
+        # Remove empty columns
+        df = df.dropna(axis = 1, how = 'all')    
+        df = df.iloc[::-1]
         #df_a = df_a.drop(["Bot. Depth [m]", 'Cruise', "PRE", 'TEM', 'SAL', 'OXY', 'FLU', 'PAR','TEM.1', 'SAL.1', 'ALT'], axis = 1) 
           # REPLACE station by filename
         df_a = df_a.astype({"Station": str})

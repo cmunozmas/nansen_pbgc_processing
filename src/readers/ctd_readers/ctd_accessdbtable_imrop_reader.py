@@ -10,7 +10,7 @@ Created on Thu Oct  6 14:44:26 2022
 import glob
 import numpy as np
 import pandas as pd
-from readers.readers_base import ReadersBase as ReadersBase
+from readers.ctd_readers.ctd_readers_base import ReadersBase as ReadersBase
 
 class CtdAccessDbImrop(ReadersBase):
     def __init__(self, *args): 

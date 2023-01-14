@@ -8,8 +8,8 @@ Created on Tue Mar  2 09:05:14 2021
 
 import netCDF4
 
-from readers.ctd_sbe_cnv_reader import CtdSbeCnv as CtdSbeCnv
-from exporters.ctd_level0_exporter import CtdLevel0 as CtdLevel0
+from readers.ctd_readers.ctd_sbe_cnv_reader import CtdSbeCnv as CtdSbeCnv
+from exporters.ctd_nc_exporters.ctd_level0_exporter import CtdLevel0 as CtdLevel0
 
 class LoadNetCDF(CtdLevel0):
     def __init__(self, *args):
